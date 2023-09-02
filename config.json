@@ -1,14 +1,32 @@
 {
-    "default": {
-      "average_daily_volume": 100,
-      "operation_days": [1, 2, 3, 4, 5],
-      "operation_hours": [9, 18]
+  "default": {
+    "operation_days": "5x2",
+    
+    "operation_hours": {
+      "start": 9,
+      "end": 18
     },
-    "small_operation": {
-      "average_daily_volume": 50
-    },
-    "large_operation": {
-      "average_daily_volume": 200
-    }
+
+    "day_profile": "classic",
+    "size_profile": "medium"
+  },
+
+  "operation_sizes": {
+    "very_small": 1000,
+    "small": 2000,
+    "medium": 3000,
+    "large": 4000,
+    "very_large": 5000
+  },
+
+  "operation_days_options": ["5x2", "6x1", "7x0"],
+
+  "day_profiles": {
+    "classic": {"Mon": 0.25, "Tue": 0.2, "Wed": 0.18, "Thu": 0.15, "Fri": 0.12, "Sat": 0.05, "Sun": 0.05},
+    "weekend_heavy": {"Mon": 0.1, "Tue": 0.1, "Wed": 0.1, "Thu": 0.1, "Fri": 0.1, "Sat": 0.25, "Sun": 0.25},
+    "midweek_peak": {"Mon": 0.1, "Tue": 0.2, "Wed": 0.3, "Thu": 0.2, "Fri": 0.1, "Sat": 0.05, "Sun": 0.05},
+    "even_distribution": {"Mon": 0.14, "Tue": 0.14, "Wed": 0.14, "Thu": 0.14, "Fri": 0.14, "Sat": 0.15, "Sun": 0.15},
+    "startweek_peak": {"Mon": 0.3, "Tue": 0.25, "Wed": 0.15, "Thu": 0.1, "Fri": 0.1, "Sat": 0.05, "Sun": 0.05},
+    "endweek_peak": {"Mon": 0.1, "Tue": 0.1, "Wed": 0.15, "Thu": 0.25, "Fri": 0.3, "Sat": 0.05, "Sun": 0.05}
   }
-  
+}

@@ -1,18 +1,87 @@
+import json
 import random
 from datetime import datetime, timedelta
-from .tickets import ticket 
+from .tickets import Ticket 
 
 
 class Simulation:
-    def __init__(self, config):
+    def __init__(self, config_file='config.json'):
         """
         Initialize a new Simulation object.
 
-        :param config: Dictionary containing simulation settings like operation 
-        type, working hours, etc.
+        :param config_file: String containing the path to the JSON config file.
         """
+        # Carregar configurações do arquivo JSON.
+        with open(config_file, 'r') as f:
+            self.config = json.load(f)['default']
+        # Lista para armazenar os tickets gerados.
         self.tickets = []
-        self.config = config
+
+        self.weekly_volume = []
+        
+
+    def update_config(self, new_config):
+        """
+        Update the simulation settings.
+
+        :param new_config: Dictionary containing new simulation settings.
+        """
+        # Atualizar as configurações com os novos valores fornecidos.
+        self.config.update(new_config)
+
+    
+    def distribute_volume_among_weeks(self):
+        """
+        Distributes the average monthly volume of tickets among the weeks of the month.
+    
+        :param: None
+        """
+        avg_monthly_volume = self.config['average_monthly_volume']
+        # Calculate the total number of days and weeks in the given time period
+        total_days = (self.end_date - self.start_date).days
+        full_weeks, extra_days = divmod(total_days, 7)
+        # Allowed variation (in percentage) for distributing volume among weeks
+        min_variation, max_variation = 23, 29  
+        remaining_volume = avg_monthly_volume
+        self.weekly_volume = []
+
+        # Distribute volume among full weeks
+        for i in range(full_weeks):
+            min_allowed = int(avg_monthly_volume * min_variation / 100)
+            max_allowed = int(avg_monthly_volume * max_variation / 100)
+            week_volume = round(random.uniform(min_allowed, max_allowed), 2)
+            remaining_volume -= week_volume
+            self.weekly_volume.append(week_volume)
+
+        # Distribute remaining volume among the extra days (if any)
+        if extra_days > 0:
+            extra_days_volume = remaining_volume * (extra_days / 7)
+            self.weekly_volume.append(round(extra_days_volume, 2))
+
+        else:
+            # If there are no extra days, the remaining volume goes to the last full week.
+            self.weekly_volume[-1] += remaining_volume
+
+
+
+    def distribute_volume_among_days(self, week_volume):
+        """
+        Distributes the average weekly volume of tickets among the days of the week.
+
+        :param week_volume: Total volume of tickets for the week.
+        """
+        # Definindo os perfis e seus pesos
+        day_profiles = ['classic', 'weekend_heavy', 'midweek_peak', 'even_distribution', 'endweek_peak']
+        weights = [0.4, 0.2, 0.15, 0.15, 0.1]
+        chosen_day_profile = random.choices(day_profiles, weights=weights, k=1)[0]
+
+        # Busca as proporções para o perfil escolhido do config.json
+        proportions = self.config['day_profiles'][chosen_day_profile]
+
+        # Distribui o volume da semana entre os dias com base nas proporções
+        for day, proportion in proportions.items():
+            day_volume = week_volume * proportion
+            self.daily_volume[day].append(day_volume)
 
 
     def generate_ticket(self):
