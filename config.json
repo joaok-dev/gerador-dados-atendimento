@@ -1,0 +1,14 @@
+{
+    "default": {
+      "average_daily_volume": 100,
+      "operation_days": [1, 2, 3, 4, 5],
+      "operation_hours": [9, 18]
+    },
+    "small_operation": {
+      "average_daily_volume": 50
+    },
+    "large_operation": {
+      "average_daily_volume": 200
+    }
+  }
+  
