@@ -1,23 +1,24 @@
 import json
 import random
+import numpy as np
+import csv
 from datetime import datetime, timedelta
 from .tickets import Ticket 
 
 
 class Simulation:
-    def __init__(self, config_file='config.json'):
+    def __init__(self, config):
         """
         Initialize a new Simulation object.
 
-        :param config_file: String containing the path to the JSON config file.
+        :param config: Dictionary containing the simulation settings.
         """
-        # Carregar configurações do arquivo JSON.
-        with open(config_file, 'r') as f:
-            self.config = json.load(f)['default']
-        # Lista para armazenar os tickets gerados.
+        self.config = config
+        self.default_config = config['default']
         self.tickets = []
-
         self.weekly_volume = []
+        self.daily_volume = {}
+        self.hourly_volume = {}
         
 
     def update_config(self, new_config):
@@ -33,22 +34,25 @@ class Simulation:
     def distribute_volume_among_weeks(self):
         """
         Distributes the average monthly volume of tickets among the weeks of the month.
-    
+
         :param: None
         """
-        avg_monthly_volume = self.config['average_monthly_volume']
+        # Retrieve the operation size from the configuration
+        operation_size = self.config['operation_sizes'][self.default_config['size_profile']]
+        
         # Calculate the total number of days and weeks in the given time period
         total_days = (self.end_date - self.start_date).days
         full_weeks, extra_days = divmod(total_days, 7)
+        
         # Allowed variation (in percentage) for distributing volume among weeks
         min_variation, max_variation = 23, 29  
-        remaining_volume = avg_monthly_volume
+        remaining_volume = operation_size
         self.weekly_volume = []
 
         # Distribute volume among full weeks
         for i in range(full_weeks):
-            min_allowed = int(avg_monthly_volume * min_variation / 100)
-            max_allowed = int(avg_monthly_volume * max_variation / 100)
+            min_allowed = int(operation_size * min_variation / 100)
+            max_allowed = int(operation_size * max_variation / 100)
             week_volume = round(random.uniform(min_allowed, max_allowed), 2)
             remaining_volume -= week_volume
             self.weekly_volume.append(week_volume)
@@ -81,33 +85,74 @@ class Simulation:
         # Distribui o volume da semana entre os dias com base nas proporções
         for day, proportion in proportions.items():
             day_volume = week_volume * proportion
+            if day not in self.daily_volume:
+                self.daily_volume[day] = []
             self.daily_volume[day].append(day_volume)
+
+
+    def distribute_volume_intraday(self, day_volume):
+        """
+        Distributes the average daily volume of tickets among the hours of the day
+        using a Gaussian distribution model.
+
+        :param day_volume: Total volume of tickets for the day.
+        """
+        # Retrieve operation hours from the config
+        operation_start = self.default_config['operation_hours']['start']
+        operation_end = self.default_config['operation_hours']['end']
+        # Retrieve the chosen intraday profile from the config
+        intraday_profile = self.default_config['chosen_intraday_profile']
+        profile_params = self.config['intraday_profiles'][intraday_profile]
+        # Generate Gaussian curve
+        hours = np.arange(operation_start, operation_end)
+        amplitude = profile_params['gaussian_peaks'][0]['amplitude']
+        center = profile_params['gaussian_peaks'][0]['center']
+        width = profile_params['gaussian_peaks'][0]['width']
+        curve = amplitude * np.exp(-0.5 * ((hours - center) / width)**2)
+        # Add noise to the curve
+        noise = np.random.normal(0, 0.05, curve.shape)
+        curve += noise
+        # Normalize the curve so that it sums to 1
+        curve /= np.sum(curve)
+        # Distribute the volume
+        hourly_volume = curve * day_volume
+        self.hourly_volume = {str(hour): vol for hour, vol in zip(hours, hourly_volume)}
 
 
     def generate_ticket(self):
         """
-        Generates a random ticket based on the simulation settings and adds it to 
+        Generates a random ticket based on the simulation settings and adds it to
         the tickets list.
         """
-        # Gerar um ID único para a chamada (usando o tamanho atual da lista `tickets`)
-        ticket_id = len(self.tickets) + 1
+        # Generate a unique ID for the ticket (using the current size of the 'tickets' list)
+        ticket_id = random.randint(1000000, 99999999)
 
-        # Gera uma data e hora aleatórias dentro do intervalo entre start_date e end_date.
+        # Choose an hour of the day based on the hourly volume
+        chosen_hour = random.choices(
+            list(self.hourly_volume.keys()),
+            weights=list(self.hourly_volume.values()),
+            k=1
+        )[0]
+
+        # Generate random minute and second
+        random_minute = random.randint(0, 59)
+        random_second = random.randint(0, 59)
+
+        # Generate a random date within the range between start_date and end_date,
+        # but fix the hour to the chosen one
         random_date = self.start_date + (self.end_date - self.start_date) * random.random()
-        
-        # Atribui a data e hora aleatórias geradas ao horário de início do ticket.
-        start_time = random_date
-        
-        # Gera um horário de término para o ticket, que é um valor aleatório de 1 a 10 minutos após o horário de início.
+        start_time = random_date.replace(hour=int(chosen_hour), minute=random_minute, second=random_second)
+
+        # Generate an end time for the ticket, which is a random value of 1 to 10 minutes after the start time.
         end_time = start_time + timedelta(minutes=random.randint(1, 10))
-        
-        # Seleciona aleatoriamente um tipo para o ticket de uma lista de tipos possíveis.
+
+        # Randomly select a type for the ticket from a list of possible types.
         ticket_type = random.choice(["voice", "chat", "email"])
-        
-        # Cria um novo objeto Ticket com os valores gerados.
+
+        # Create a new Ticket object with the generated values.
         new_ticket = Ticket(ticket_id, start_time, end_time, ticket_type)
-        
-        # Adiciona o novo objeto Ticket à lista de tickets.
+
+        # Add the new Ticket object to the list of tickets.
         self.tickets.append(new_ticket)
 
     
@@ -136,23 +181,40 @@ class Simulation:
         """
         Executes the simulation by generating tickets and populating the tickets list.
         """
-        # Determinar o número total de dias no intervalo de simulação.
+        # Determine the total number of days in the simulation range.
         total_days = (self.end_date - self.start_date).days
-        
-        # Suponhamos que o volume médio diário de tickets seja fornecido nas configurações.
-        average_daily_volume = self.config["average_daily_volume"]
-        
-        # Calcular o número total de tickets a serem gerados.
-        total_tickets = total_days * average_daily_volume
-        
-        # Executar um loop para gerar o número total de tickets.
-        for i in range(total_tickets):
-            self.generate_ticket()
-            
-        # Aqui, você pode adicionar lógica adicional para simular variações no volume de tickets.
 
-    def export_to_csv(self):
+        # First distribute the volume among weeks and days
+        self.distribute_volume_among_weeks()
+        
+        # Run a loop to generate the total number of tickets.
+        for week_volume in self.weekly_volume:
+            self.distribute_volume_among_days(week_volume)
+            for day, day_volumes in self.daily_volume.items():
+                for day_volume in day_volumes:
+                    self.distribute_volume_intraday(day_volume)
+                    for _ in range(int(day_volume)):
+                        self.generate_ticket()
+
+
+
+    def export_to_csv(self, file_name='../data_out/tickets.csv'):
         """
         Exports the generated tickets to a CSV file.
+        
+        :param file_name: The name of the CSV file to write to.
         """
-        pass  # To be implemented
+        with open(file_name, 'w', newline='') as csvfile:
+            fieldnames = ['Ticket ID', 'Start Date', 'Start Time', 'End Date', 'End Time', 'Type']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+            writer.writeheader()
+            for ticket in self.tickets:
+                writer.writerow({
+                    'Ticket ID': ticket.ticket_id,
+                    'Start Date': ticket.start_time.date(),
+                    'Start Time': ticket.start_time.time().strftime('%H:%M:%S'),
+                    'End Date': ticket.end_time.date(),
+                    'End Time': ticket.end_time.time().strftime('%H:%M:%S'),
+                    'Type': ticket.ticket_type
+                })
