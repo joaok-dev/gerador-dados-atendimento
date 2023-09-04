@@ -2,6 +2,7 @@ import json
 import random
 import numpy as np
 import csv
+import os
 from datetime import datetime, timedelta
 from .tickets import Ticket 
 
@@ -19,6 +20,8 @@ class Simulation:
         self.weekly_volume = []
         self.daily_volume = {}
         self.hourly_volume = {}
+        self.start_date = None
+        self.end_date = None
         
 
     def update_config(self, new_config):
@@ -28,17 +31,19 @@ class Simulation:
         :param new_config: Dictionary containing new simulation settings.
         """
         # Atualizar as configurações com os novos valores fornecidos.
-        self.config.update(new_config)
+        self.default_config.update(new_config.get('default', {}))
 
     
     def distribute_volume_among_weeks(self):
         """
         Distributes the average monthly volume of tickets among the weeks of the month.
-
-        :param: None
         """
         # Retrieve the operation size from the configuration
         operation_size = self.config['operation_sizes'][self.default_config['size_profile']]
+        
+        # Check if operation_size is a list and choose a random integer within the range
+        if isinstance(operation_size, list):
+            operation_size = random.randint(operation_size[0], operation_size[1])
         
         # Calculate the total number of days and weeks in the given time period
         total_days = (self.end_date - self.start_date).days
@@ -198,16 +203,25 @@ class Simulation:
 
 
 
-    def export_to_csv(self, file_name='../data_out/tickets.csv'):
+    def export_to_csv(self, file_name_prefix='../data_out/tickets'):
         """
         Exports the generated tickets to a CSV file.
         
-        :param file_name: The name of the CSV file to write to.
+        :param file_name_prefix: The prefix of the CSV file to write to.
         """
+        # Gerar um carimbo de data/hora para tornar o nome do arquivo único
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        file_name = f'{file_name_prefix}_{timestamp}.csv'
+        
+        # Criar o diretório se ele não existir
+        directory = os.path.dirname(file_name)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        
         with open(file_name, 'w', newline='') as csvfile:
             fieldnames = ['Ticket ID', 'Start Date', 'Start Time', 'End Date', 'End Time', 'Type']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
+            
             writer.writeheader()
             for ticket in self.tickets:
                 writer.writerow({

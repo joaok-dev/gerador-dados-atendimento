@@ -1,32 +1,137 @@
 {
   "default": {
     "operation_days": "5x2",
-    
+
     "operation_hours": {
       "start": 9,
       "end": 18
     },
 
     "day_profile": "classic",
-    "size_profile": "medium"
+    "size_profile": "medium",
+    "chosen_intraday_profile": "midday_peak"
   },
 
+  "ticket_types": ["voice", "chat", "email"],
+
   "operation_sizes": {
-    "very_small": 1000,
-    "small": 2000,
-    "medium": 3000,
-    "large": 4000,
-    "very_large": 5000
+    "very_small": [1000, 2800],
+    "small": [2801, 9500],
+    "medium": [9501, 22000],
+    "large": [22001, 50000],
+    "very_large": [50001, 80000]
   },
 
   "operation_days_options": ["5x2", "6x1", "7x0"],
 
   "day_profiles": {
-    "classic": {"Mon": 0.25, "Tue": 0.2, "Wed": 0.18, "Thu": 0.15, "Fri": 0.12, "Sat": 0.05, "Sun": 0.05},
-    "weekend_heavy": {"Mon": 0.1, "Tue": 0.1, "Wed": 0.1, "Thu": 0.1, "Fri": 0.1, "Sat": 0.25, "Sun": 0.25},
-    "midweek_peak": {"Mon": 0.1, "Tue": 0.2, "Wed": 0.3, "Thu": 0.2, "Fri": 0.1, "Sat": 0.05, "Sun": 0.05},
-    "even_distribution": {"Mon": 0.14, "Tue": 0.14, "Wed": 0.14, "Thu": 0.14, "Fri": 0.14, "Sat": 0.15, "Sun": 0.15},
-    "startweek_peak": {"Mon": 0.3, "Tue": 0.25, "Wed": 0.15, "Thu": 0.1, "Fri": 0.1, "Sat": 0.05, "Sun": 0.05},
-    "endweek_peak": {"Mon": 0.1, "Tue": 0.1, "Wed": 0.15, "Thu": 0.25, "Fri": 0.3, "Sat": 0.05, "Sun": 0.05}
-  }
+    "classic": {
+      "Mon": 0.25,
+      "Tue": 0.2,
+      "Wed": 0.18,
+      "Thu": 0.15,
+      "Fri": 0.12,
+      "Sat": 0.05,
+      "Sun": 0.05},
+
+    "startweek_peak": {
+      "Mon": 0.3,
+      "Tue": 0.25,
+      "Wed": 0.15,
+      "Thu": 0.1,
+      "Fri": 0.1,
+      "Sat": 0.05,
+      "Sun": 0.05},
+
+    "midweek_peak": {
+      "Mon": 0.1,
+      "Tue": 0.2,
+      "Wed": 0.3,
+      "Thu": 0.2,
+      "Fri": 0.1,
+      "Sat": 0.05,
+      "Sun": 0.05},
+
+    "even_distribution": {
+      "Mon": 0.14,
+      "Tue": 0.14,
+      "Wed": 0.14,
+      "Thu": 0.14,
+      "Fri": 0.14,
+      "Sat": 0.15,
+      "Sun": 0.15},
+
+    "weekend_heavy": {
+      "Mon": 0.1,
+      "Tue": 0.1,
+      "Wed": 0.1,
+      "Thu": 0.1,
+      "Fri": 0.1,
+      "Sat": 0.25,
+      "Sun": 0.25},
+
+    "endweek_peak": {
+      "Mon": 0.1,
+      "Tue": 0.1,
+      "Wed": 0.15,
+      "Thu": 0.25,
+      "Fri": 0.3,
+      "Sat": 0.05,
+      "Sun": 0.05}
+  },
+
+  "intraday_profiles": {
+    "midday_peak": {
+        "gaussian_peaks": [
+            {
+                "amplitude": 0.3,
+                "center": 12,
+                "width": 1.5
+            }
+        ]
+    },
+    "dual_peak": {
+        "gaussian_peaks": [
+            {
+                "amplitude": 0.2,
+                "center": 11,
+                "width": 1.5
+            },
+            {
+                "amplitude": 0.1,
+                "center": 15,
+                "width": 1.5
+            }
+        ]
+    },
+    "three_peaks": {
+        "gaussian_peaks": [
+            {
+                "amplitude": 0.25,
+                "center": 11,
+                "width": 1.5
+            },
+            {
+                "amplitude": 0.15,
+                "center": 15,
+                "width": 1.5
+            },
+            {
+                "amplitude": 0.1,
+                "center": 20,
+                "width": 1.5
+            }
+        ]
+    },
+
+    "custom_linear": {
+        "type": "linear",
+        "ascend_range": [0, 11],
+        "plat_range": [11, 17],
+        "descend_range": [17, 24]
+
+    }
+
+}
+
 }
